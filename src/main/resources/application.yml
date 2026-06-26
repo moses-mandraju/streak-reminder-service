@@ -8,9 +8,10 @@ logging:
     com.streakreminder: DEBUG
 
 firebase:
-  project-id: streak-reminder-service
+  project-id: streak-checker
   service-account-file-path: classpath:firebase-service-account.json
 
 scheduler:
   enabled: true
   poll-interval-seconds: 60
+

@@ -1,4 +1,4 @@
-package com.streakreminder.model;
+package com.moses.streakreminder.model;
 
 import lombok.Builder;
 import lombok.Data;
@@ -27,3 +27,4 @@ public class Habit {
     private String notificationMessage;
     private String reminderTimezone;
 }
+

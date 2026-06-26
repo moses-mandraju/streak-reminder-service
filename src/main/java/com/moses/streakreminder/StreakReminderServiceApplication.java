@@ -1,4 +1,4 @@
-package com.streakreminder.service;
+package com.moses.streakreminder;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,3 +12,4 @@ public class StreakReminderServiceApplication {
         SpringApplication.run(StreakReminderServiceApplication.class, args);
     }
 }
+

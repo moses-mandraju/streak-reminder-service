@@ -1,4 +1,4 @@
-package com.streakreminder.config;
+package com.moses.streakreminder.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,3 +11,4 @@ public class SchedulerProperties {
     private boolean enabled = true;
     private int pollIntervalSeconds = 60;
 }
+

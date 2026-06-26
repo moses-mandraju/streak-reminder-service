@@ -1,13 +1,13 @@
-package com.streakreminder.repository;
+package com.moses.streakreminder.repository;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
-import com.streakreminder.model.DeviceToken;
-import com.streakreminder.model.Habit;
-import com.streakreminder.util.FirestoreMapper;
+import com.moses.streakreminder.model.DeviceToken;
+import com.moses.streakreminder.model.Habit;
+import com.moses.streakreminder.util.FirestoreMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
@@ -24,7 +24,7 @@ public class FirestoreRepository {
     public FirestoreRepository(Firestore firestore) {
         this.firestore = firestore;
     }
-
+/*
     public List<String> findAllUserIds() {
         try {
             CollectionReference users = firestore.collection("users");
@@ -38,6 +38,34 @@ public class FirestoreRepository {
             throw new IllegalStateException("Unable to retrieve user ids from Firestore", e);
         }
     }
+*/
+public List<String> findAllUserIds() {
+    try {
+
+        QuerySnapshot snapshot = firestore.collection("users").get().get();
+
+        log.info("====================================");
+        log.info("Documents returned = {}", snapshot.size());
+
+        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+
+            log.info("Document ID = {}", doc.getId());
+            log.info("Exists = {}", doc.exists());
+            log.info("Data = {}", doc.getData());
+
+        }
+
+        log.info("====================================");
+
+        return snapshot.getDocuments()
+                .stream()
+                .map(DocumentSnapshot::getId)
+                .toList();
+
+    } catch (Exception e) {
+        throw new IllegalStateException("Unable to retrieve user ids", e);
+    }
+}
 
     public List<Habit> findHabitsByUserId(String userId) {
         try {
@@ -67,3 +95,4 @@ public class FirestoreRepository {
         }
     }
 }
+

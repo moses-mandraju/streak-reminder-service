@@ -1,4 +1,4 @@
-package com.streakreminder.model;
+package com.moses.streakreminder.model;
 
 import com.google.cloud.Timestamp;
 import lombok.Builder;
@@ -11,3 +11,4 @@ public class DeviceToken {
     private Timestamp createdAt;
     private Timestamp lastSeenAt;
 }
+

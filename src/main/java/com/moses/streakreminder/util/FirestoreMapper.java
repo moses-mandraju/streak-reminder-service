@@ -1,9 +1,9 @@
-package com.streakreminder.util;
+package com.moses.streakreminder.util;
 
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentSnapshot;
-import com.streakreminder.model.DeviceToken;
-import com.streakreminder.model.Habit;
+import com.moses.streakreminder.model.DeviceToken;
+import com.moses.streakreminder.model.Habit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,3 +74,4 @@ public final class FirestoreMapper {
         return List.of();
     }
 }
+

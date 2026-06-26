@@ -1,0 +1,22 @@
+# Maven
+target/
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+
+# Firebase credentials
+src/main/resources/firebase-service-account.json
+
+# Maven Wrapper JAR
+.mvn/wrapper/maven-wrapper.jar

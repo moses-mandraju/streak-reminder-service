@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: streak-reminder-service
+
+logging:
+  level:
+    root: INFO
+    com.streakreminder: DEBUG
+
+firebase:
+  project-id: streak-reminder-service
+  service-account-file-path: classpath:firebase-service-account.json
+
+scheduler:
+  enabled: true
+  poll-interval-seconds: 60

@@ -5,8 +5,10 @@ import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
+import com.google.firebase.cloud.FirestoreClient;
 import com.moses.streakreminder.model.DeviceToken;
 import com.moses.streakreminder.model.Habit;
+import com.moses.streakreminder.model.UserSnapshot;
 import com.moses.streakreminder.util.FirestoreMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -24,22 +26,8 @@ public class FirestoreRepository {
     public FirestoreRepository(Firestore firestore) {
         this.firestore = firestore;
     }
-/*
+
     public List<String> findAllUserIds() {
-        try {
-            CollectionReference users = firestore.collection("users");
-            ApiFuture<QuerySnapshot> usersFuture = users.get();
-            QuerySnapshot usersSnapshot = usersFuture.get();
-            return usersSnapshot.getDocuments().stream()
-                    .map(DocumentSnapshot::getId)
-                    .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Unable to retrieve user ids from Firestore", e);
-        }
-    }
-*/
-public List<String> findAllUserIds() {
     try {
 
         QuerySnapshot snapshot = firestore.collection("users").get().get();
@@ -94,5 +82,56 @@ public List<String> findAllUserIds() {
             throw new IllegalStateException("Unable to retrieve device tokens for user " + userId, e);
         }
     }
+
+    public UserSnapshot findUserSnapshot(String userId) {
+    try {
+
+        DocumentSnapshot snapshot = firestore.collection("users")
+                .document(userId)
+                .get()
+                .get();
+
+        if (!snapshot.exists()) {
+            return null;
+        }
+
+        return UserSnapshot.builder()
+                .uid(snapshot.getString("uid"))
+                .displayName(snapshot.getString("displayName"))
+                .email(snapshot.getString("email"))
+                .photoURL(snapshot.getString("photoURL"))
+                .timezone(snapshot.getString("timezone"))
+                .createdAt(snapshot.get("createdAt"))
+                .lastLoginAt(snapshot.get("lastLoginAt"))
+                .habits(findHabitsByUserId(userId))
+                .deviceTokens(findDeviceTokensByUserId(userId))
+                .build();
+
+    } catch (InterruptedException | ExecutionException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("Unable to retrieve user " + userId, e);
+    }
+}
+
+   public void deleteDeviceToken(String token) {
+    try {
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Query across all users' deviceTokens subcollections
+        db.collectionGroup("deviceTokens")
+          .whereEqualTo("token", token)
+          .get()
+          .get() // blocking call
+          .getDocuments()
+          .forEach(doc -> {
+              doc.getReference().delete();
+              log.info("Deleted stale token doc: {}", doc.getId());
+          });
+
+    } catch (Exception ex) {
+        log.error("Failed to delete stale token: {}", token, ex);
+        // Don't rethrow — stale token cleanup is best-effort
+    }
+}
 }
 

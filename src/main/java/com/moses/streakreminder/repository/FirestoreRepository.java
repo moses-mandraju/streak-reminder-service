@@ -113,24 +113,24 @@ public class FirestoreRepository {
     }
 }
 
-   public void deleteDeviceToken(String token) {
+  public void deleteDeviceToken(String uid, String token) {
     try {
         Firestore db = FirestoreClient.getFirestore();
 
-        // Query across all users' deviceTokens subcollections
-        db.collectionGroup("deviceTokens")
+        // Direct path — no index needed
+        db.collection("users")
+          .document(uid)
+          .collection("deviceTokens")
           .whereEqualTo("token", token)
           .get()
-          .get() // blocking call
+          .get()
           .getDocuments()
-          .forEach(doc -> {
-              doc.getReference().delete();
-              log.info("Deleted stale token doc: {}", doc.getId());
-          });
+          .forEach(doc -> doc.getReference().delete());
+
+        log.info("Deleted stale token for user={}", uid);
 
     } catch (Exception ex) {
-        log.error("Failed to delete stale token: {}", token, ex);
-        // Don't rethrow — stale token cleanup is best-effort
+        log.error("Failed to delete stale token for user={}", uid, ex);
     }
 }
 }

@@ -21,12 +21,13 @@ public class NotificationService {
     private final FirestoreRepository firestoreRepository; // inject your existing repo
 
     public NotificationService(FirebaseMessaging firebaseMessaging,
-                                FirestoreRepository firestoreRepository) {
+            FirestoreRepository firestoreRepository) {
         this.firebaseMessaging = firebaseMessaging;
         this.firestoreRepository = firestoreRepository;
     }
 
-    public String sendNotification(String token, String title, String body) {
+    // Change signature to accept uid
+    public String sendNotification(String uid, String token, String title, String body) {
         try {
             Message message = Message.builder()
                     .setToken(token)
@@ -41,14 +42,12 @@ public class NotificationService {
             return messageId;
 
         } catch (FirebaseMessagingException ex) {
-
             if (MessagingErrorCode.UNREGISTERED.equals(ex.getMessagingErrorCode())) {
-                log.warn("Stale token detected, removing from Firestore: {}", token);
-                firestoreRepository.deleteDeviceToken(token); // 👈 delete it
+                log.warn("Stale token detected, removing: {}", token);
+                firestoreRepository.deleteDeviceToken(uid, token); // ✅ uid now available
             } else {
                 log.error("Failed to send notification to token={}", token, ex);
             }
-
             throw new RuntimeException("Unable to send notification", ex);
         }
     }
@@ -59,9 +58,8 @@ public class NotificationService {
                 continue;
             }
             try {
-                sendNotification(deviceToken.getToken(), title, body);
+                sendNotification(deviceToken.getUid(), deviceToken.getToken(), title, body); // ✅ pass uid
             } catch (RuntimeException ex) {
-                // Log and continue — don't let one bad token stop others
                 log.warn("Skipping token due to error: {}", deviceToken.getToken());
             }
         }

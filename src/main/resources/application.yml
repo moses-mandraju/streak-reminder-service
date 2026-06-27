@@ -14,4 +14,3 @@ firebase:
 scheduler:
   enabled: true
   poll-interval-seconds: 60
-

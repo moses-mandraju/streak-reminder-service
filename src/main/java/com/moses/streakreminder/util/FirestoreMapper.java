@@ -44,6 +44,7 @@ public final class FirestoreMapper {
         }
 
         return DeviceToken.builder()
+                .uid(document.getReference().getParent().getParent().getId())
                 .token(document.getString("token"))
                 .createdAt(document.contains("createdAt") ? document.getTimestamp("createdAt") : null)
                 .lastSeenAt(document.contains("lastSeenAt") ? document.getTimestamp("lastSeenAt") : null)
@@ -74,4 +75,3 @@ public final class FirestoreMapper {
         return List.of();
     }
 }
-

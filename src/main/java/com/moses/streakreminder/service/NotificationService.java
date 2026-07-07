@@ -35,6 +35,15 @@ public class NotificationService {
                             .setTitle(title)
                             .setBody(body)
                             .build())
+                    .setWebpushConfig(
+                            WebpushConfig.builder()
+                                    .setNotification(
+                                            WebpushNotification.builder()
+                                                    .setTitle(title)
+                                                    .setBody(body)
+                                                    .setTag(String.valueOf(System.currentTimeMillis())) // 👈 unique tag
+                                                    .build())
+                                    .build())
                     .build();
 
             String messageId = firebaseMessaging.send(message);

@@ -27,7 +27,7 @@ public class ReminderScheduler {
         this.firestoreRepository = firestoreRepository;
     }
 
-    @Scheduled(fixedDelayString = "${scheduler.poll-interval-seconds:60}000")
+    @Scheduled(cron = "${scheduler.cron-expression:0 * * * * *}")
     public void processReminders() {
 
         log.info("========================================");

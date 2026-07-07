@@ -65,7 +65,18 @@ public final class ReminderEvaluator {
     }
 
     private static boolean isInToleranceWindow(LocalTime configuredTime, LocalTime actualTime, long toleranceSeconds) {
-        var secondsDifference = Math.abs(configuredTime.toSecondOfDay() - actualTime.toSecondOfDay());
+        var sameHourAndMinute = configuredTime.getHour() == actualTime.getHour()
+                && configuredTime.getMinute() == actualTime.getMinute();
+
+        if (!sameHourAndMinute) {
+            return false;
+        }
+
+        if (toleranceSeconds <= 0) {
+            return true;
+        }
+
+        var secondsDifference = Math.abs(configuredTime.getSecond() - actualTime.getSecond());
         return secondsDifference <= toleranceSeconds;
     }
 

@@ -28,32 +28,29 @@ public class FirestoreRepository {
     }
 
     public List<String> findAllUserIds() {
-    try {
+        try {
+            QuerySnapshot snapshot = firestore.collection("users").get().get();
 
-        QuerySnapshot snapshot = firestore.collection("users").get().get();
+            log.info("====================================");
+            log.info("Documents returned = {}", snapshot.size());
 
-        log.info("====================================");
-        log.info("Documents returned = {}", snapshot.size());
+            for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                log.info("Document ID = {}", doc.getId());
+                log.info("Exists = {}", doc.exists());
+                log.info("Data = {}", doc.getData());
+            }
 
-        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+            log.info("====================================");
 
-            log.info("Document ID = {}", doc.getId());
-            log.info("Exists = {}", doc.exists());
-            log.info("Data = {}", doc.getData());
-
+            return snapshot.getDocuments()
+                    .stream()
+                    .map(DocumentSnapshot::getId)
+                    .toList();
+        } catch (Exception e) {
+            log.warn("Unable to retrieve user ids from Firestore; skipping scheduler cycle", e);
+            return List.of();
         }
-
-        log.info("====================================");
-
-        return snapshot.getDocuments()
-                .stream()
-                .map(DocumentSnapshot::getId)
-                .toList();
-
-    } catch (Exception e) {
-        throw new IllegalStateException("Unable to retrieve user ids", e);
     }
-}
 
     public List<Habit> findHabitsByUserId(String userId) {
         try {
@@ -65,7 +62,8 @@ public class FirestoreRepository {
                     .collect(Collectors.toList());
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Unable to retrieve habits for user " + userId, e);
+            log.warn("Unable to retrieve habits for user {}; skipping", userId, e);
+            return List.of();
         }
     }
 
@@ -79,39 +77,39 @@ public class FirestoreRepository {
                     .collect(Collectors.toList());
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Unable to retrieve device tokens for user " + userId, e);
+            log.warn("Unable to retrieve device tokens for user {}; skipping", userId, e);
+            return List.of();
         }
     }
 
     public UserSnapshot findUserSnapshot(String userId) {
-    try {
+        try {
+            DocumentSnapshot snapshot = firestore.collection("users")
+                    .document(userId)
+                    .get()
+                    .get();
 
-        DocumentSnapshot snapshot = firestore.collection("users")
-                .document(userId)
-                .get()
-                .get();
+            if (!snapshot.exists()) {
+                return null;
+            }
 
-        if (!snapshot.exists()) {
+            return UserSnapshot.builder()
+                    .uid(snapshot.getString("uid"))
+                    .displayName(snapshot.getString("displayName"))
+                    .email(snapshot.getString("email"))
+                    .photoURL(snapshot.getString("photoURL"))
+                    .timezone(snapshot.getString("timezone"))
+                    .createdAt(snapshot.get("createdAt"))
+                    .lastLoginAt(snapshot.get("lastLoginAt"))
+                    .habits(findHabitsByUserId(userId))
+                    .deviceTokens(findDeviceTokensByUserId(userId))
+                    .build();
+        } catch (InterruptedException | ExecutionException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Unable to retrieve user {} from Firestore; skipping", userId, e);
             return null;
         }
-
-        return UserSnapshot.builder()
-                .uid(snapshot.getString("uid"))
-                .displayName(snapshot.getString("displayName"))
-                .email(snapshot.getString("email"))
-                .photoURL(snapshot.getString("photoURL"))
-                .timezone(snapshot.getString("timezone"))
-                .createdAt(snapshot.get("createdAt"))
-                .lastLoginAt(snapshot.get("lastLoginAt"))
-                .habits(findHabitsByUserId(userId))
-                .deviceTokens(findDeviceTokensByUserId(userId))
-                .build();
-
-    } catch (InterruptedException | ExecutionException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException("Unable to retrieve user " + userId, e);
     }
-}
 
   public void deleteDeviceToken(String uid, String token) {
     try {

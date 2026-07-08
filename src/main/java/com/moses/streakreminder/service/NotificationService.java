@@ -39,6 +39,8 @@ public class NotificationService {
                     .putData("tag", uniqueTag)
                     .setWebpushConfig(
                             WebpushConfig.builder()
+                                    .putHeader("Urgency", "high")
+                                    .putHeader("TTL", "60")
                                     .setNotification(
                                             WebpushNotification.builder()
                                                     .setTitle(title)

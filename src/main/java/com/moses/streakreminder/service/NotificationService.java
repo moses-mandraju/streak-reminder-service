@@ -29,19 +29,21 @@ public class NotificationService {
     // Change signature to accept uid
     public String sendNotification(String uid, String token, String title, String body) {
         try {
+            String uniqueTag = "reminder-" + System.currentTimeMillis();
             Message message = Message.builder()
                     .setToken(token)
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
                             .build())
+                    .putData("tag", uniqueTag)
                     .setWebpushConfig(
                             WebpushConfig.builder()
                                     .setNotification(
                                             WebpushNotification.builder()
                                                     .setTitle(title)
                                                     .setBody(body)
-                                                    .setTag(String.valueOf(System.currentTimeMillis())) // 👈 unique tag
+                                                    .setTag(uniqueTag)
                                                     .build())
                                     .build())
                     .build();

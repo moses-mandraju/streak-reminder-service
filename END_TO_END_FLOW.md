@@ -34,7 +34,7 @@
 
 6. **Spring Scheduler**
    - `streak-reminder-service` runs a scheduled task every minute.
-   - It scans Firestore for habit reminders due now.
+   - It scans Firestore for habit reminders due now and moves opted-in unfinished tasks forward after their local due date.
 
 7. **Firestore query**
    - Service reads:
@@ -80,7 +80,7 @@
 ## One-time task reminder flow
 
 1. The To-Do planner writes task details and reminder preferences to the existing `users/{uid}/tasks/{taskId}` document, including the task date, local time, IANA time zone, reminder offset, and `reminderStatus: pending`.
-2. The Spring scheduler reads task documents on its existing minute cadence. It computes the reminder instant from task date/time and time zone; all-day reminders use 09:00 local time.
+2. The Spring scheduler reads task documents on its existing minute cadence. It moves only tasks with `carryForward: true` to the current date in their stored time zone after their due date passes. It computes reminder instants from task date/time and time zone; all-day reminders use 09:00 local time.
 3. Before sending, a Firestore transaction changes the current pending task to `sending`. This prevents two scheduler instances from claiming the same reminder.
 4. The service rechecks the task and completion state, loads the user's existing device tokens, and sends one FCM message per active token. A stable task/date/time tag lets the service worker replace duplicates.
 5. On success the task status becomes `sent`. A completed task is marked `cancelled`; edits/reschedules reset the status to `pending`; a deleted task no longer exists to be sent. Invalid reminders become `invalid`, and tasks outside the configured two-minute grace window become `missed`.

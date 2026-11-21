@@ -26,6 +26,7 @@ class TaskReminderMapperTest {
         assertEquals("legacy-task", task.getId());
         assertFalse(task.isAllDay());
         assertFalse(task.isCompleted());
+        assertFalse(task.isCarryForward());
         assertFalse(task.isNotificationEnabled());
         assertEquals(0, task.getReminderMinutesBefore());
         assertNull(task.getReminderStatus());

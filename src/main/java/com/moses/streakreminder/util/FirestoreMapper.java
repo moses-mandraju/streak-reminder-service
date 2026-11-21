@@ -65,6 +65,7 @@ public final class FirestoreMapper {
                 .startTime(document.getString("startTime"))
                 .allDay(Boolean.TRUE.equals(document.getBoolean("allDay")))
                 .completed(Boolean.TRUE.equals(document.getBoolean("completed")))
+                .carryForward(Boolean.TRUE.equals(document.getBoolean("carryForward")))
                 .notificationEnabled(Boolean.TRUE.equals(document.getBoolean("notificationEnabled")))
                 .reminderMinutesBefore(getInteger(document, "reminderMinutesBefore"))
                 .reminderStatus(document.getString("reminderStatus"))

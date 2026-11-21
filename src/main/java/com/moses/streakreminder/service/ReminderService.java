@@ -4,6 +4,7 @@ import com.moses.streakreminder.model.DueReminder;
 import com.moses.streakreminder.model.Habit;
 import com.moses.streakreminder.model.TaskReminder;
 import com.moses.streakreminder.repository.FirestoreRepository;
+import com.moses.streakreminder.util.TaskCarryForwardEvaluator;
 import com.moses.streakreminder.util.ReminderEvaluator;
 import com.moses.streakreminder.util.TaskReminderEvaluator;
 import lombok.extern.slf4j.Slf4j;
@@ -74,6 +75,24 @@ public class ReminderService {
         }
 
         return dueTasks;
+    }
+
+    public int moveIncompleteTasksForward(Instant now) {
+        int movedCount = 0;
+        for (var userId : firestoreRepository.findAllUserIds()) {
+            for (var task : firestoreRepository.findTasksByUserId(userId)) {
+                var evaluation = TaskCarryForwardEvaluator.evaluate(task, now);
+                if (evaluation.state() == TaskCarryForwardEvaluator.State.INVALID) {
+                    log.warn("Skipping carry-forward for task with invalid date or time zone, user={}, task={}",
+                            userId, task.getId());
+                } else if (evaluation.state() == TaskCarryForwardEvaluator.State.DUE
+                        && firestoreRepository.moveTaskForwardIfStillDue(
+                                userId, task, evaluation.targetDate(), now)) {
+                    movedCount++;
+                }
+            }
+        }
+        return movedCount;
     }
 
     public boolean isTaskReminderClaimCurrent(TaskReminder task) {

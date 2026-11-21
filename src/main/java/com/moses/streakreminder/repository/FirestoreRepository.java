@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
@@ -108,6 +109,48 @@ public class FirestoreRepository {
         } catch (ExecutionException exception) {
             log.warn("Unable to retrieve tasks for user {}; skipping", userId, exception);
             return List.of();
+        }
+    }
+
+    public boolean moveTaskForwardIfStillDue(
+            String userId,
+            TaskReminder task,
+            LocalDate targetDate,
+            Instant now) {
+        DocumentReference taskReference = firestore.collection("users")
+                .document(userId)
+                .collection("tasks")
+                .document(task.getId());
+
+        try {
+            return firestore.runTransaction(transaction -> {
+                DocumentSnapshot snapshot = transaction.get(taskReference).get();
+                TaskReminder currentTask = FirestoreMapper.toTaskReminder(snapshot);
+                if (currentTask == null
+                        || currentTask.isCompleted()
+                        || !currentTask.isCarryForward()
+                        || !Objects.equals(currentTask.getDueDate(), task.getDueDate())
+                        || currentTask.getDueDate().compareTo(targetDate.toString()) >= 0) {
+                    return false;
+                }
+
+                transaction.update(taskReference, Map.of(
+                        "dueDate", targetDate.toString(),
+                        "reminderStatus", currentTask.isNotificationEnabled() ? "pending" : "disabled",
+                        "reminderClaimedAt", "",
+                        "reminderSentAt", "",
+                        "updatedAt", now.toString()));
+                return true;
+            }).get();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while moving task forward for user={}, task={}",
+                    userId, task.getId(), exception);
+            return false;
+        } catch (ExecutionException exception) {
+            log.error("Unable to move task forward for user={}, task={}",
+                    userId, task.getId(), exception);
+            return false;
         }
     }
 

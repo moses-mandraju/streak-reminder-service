@@ -14,6 +14,7 @@ public class TaskReminder {
     private String startTime;
     private boolean allDay;
     private boolean completed;
+    private boolean carryForward;
     private boolean notificationEnabled;
     private int reminderMinutesBefore;
     private String reminderStatus;

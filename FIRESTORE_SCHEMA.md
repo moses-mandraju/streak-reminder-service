@@ -128,6 +128,7 @@ Tasks remain in the existing `users/{uid}/tasks/{taskId}` subcollection. New fie
 - `startTime`, `endTime` (optional local `HH:mm` times)
 - `allDay` (boolean, defaults to `false`)
 - `completed` (boolean, existing)
+- `carryForward` (boolean, defaults to `false`; explicitly opted-in unfinished tasks move forward after their due date)
 - `notificationEnabled` (boolean, defaults to `false`)
 - `reminderMinutesBefore` (number: `0`, `5`, `10`, `15`, `30`, or `60`)
 - `timezone` (IANA time-zone ID; defaults to the browser's current zone)
@@ -135,7 +136,9 @@ Tasks remain in the existing `users/{uid}/tasks/{taskId}` subcollection. New fie
 - `reminderClaimedAt`, `reminderSentAt` (optional ISO-8601 timestamps)
 - `createdAt`, `updatedAt` (ISO-8601 timestamps)
 
-The React app writes reminder preferences to the task document. The existing Spring scheduler polls task documents each minute, computes the one-time trigger in `timezone`, and atomically claims a due task by changing `reminderStatus` from `pending` to `sending`. Successful sends set `sent`; a completed or deleted task is not sent; changing task timing or enabling a reminder resets it to `pending`. Invalid settings are marked `invalid`, and reminders more than the configured grace window late are marked `missed`. All-day task reminders use 09:00 local time.
+The React app writes task and reminder preferences to the task document. The existing Spring scheduler polls task documents each minute, computes the one-time trigger in `timezone`, and atomically claims a due task by changing `reminderStatus` from `pending` to `sending`. Successful sends set `sent`; a completed or deleted task is not sent; changing task timing or enabling a reminder resets it to `pending`. Invalid settings are marked `invalid`, and reminders more than the configured grace window late are marked `missed`. All-day task reminders use 09:00 local time.
+
+Tasks with `carryForward: true` are moved to the current date in their stored time zone after their due date passes, unless completed. The update is transactional and resets any reminder schedule for the new date. Missing `carryForward` fields default to `false`; legacy tasks are never moved automatically.
 
 The scheduler reuses the existing `users/{uid}/deviceTokens` collection. FCM messages use a stable task/date/time tag so duplicate sends replace the same browser notification rather than alerting repeatedly. FCM `UNREGISTERED` errors remove the stale token. There are no scheduled FCM provider jobs to cancel: the scheduler checks the current Firestore task and status immediately before sending.
 

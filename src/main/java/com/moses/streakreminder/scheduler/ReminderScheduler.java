@@ -70,6 +70,8 @@ public class ReminderScheduler {
             );
         }
 
+        int carriedForward = reminderService.moveIncompleteTasksForward(now.toInstant());
+        log.info("Incomplete tasks moved forward: {}", carriedForward);
         processTaskReminders(now);
 
         log.info("Reminder Scheduler Completed");

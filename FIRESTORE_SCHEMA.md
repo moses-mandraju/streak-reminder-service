@@ -17,6 +17,9 @@ Habit documents are stored under `users/{uid}/habits/{habitId}` and include the 
 
 - `title` (string)
 - `emoji` (string)
+- `frequencyType` (string) - `daily`, `weekly`, or `specific-days`; missing values default to `daily`
+- `weeklyTarget` (number) - weekly completion target of 3, 4, 5, or 6
+- `scheduledDays` (array of numbers) - weekdays for `specific-days`, using Monday `1` through Sunday `0`
 - `createdDate` (string) - date key in format `yyyy-MM-dd`
 - `currentStreak` (number)
 - `longestStreak` (number)
@@ -32,6 +35,8 @@ Reminder-related fields are stored directly on the habit document:
 - `notificationTitle` (string)
 - `notificationMessage` (string)
 - `reminderTimezone` (string) - IANA timezone name, default from the browser environment
+
+The habit schedule fields are used by the React app for scoring and streaks. They are separate from reminder scheduling: reminder `selectedDays` remains an array of weekday names used only with `reminderFrequency`.
 
 Default reminder field values from the React app:
 
@@ -113,10 +118,33 @@ The new `streak-reminder-service` should use the exact same collection paths and
 - If `selectedDays` is empty and `reminderFrequency` is `Weekly`, do not send a notification
 - If `notificationTitle` or `notificationMessage` is empty, the service should still function but can substitute a safe default text
 
+## One-time task reminders
+
+Tasks remain in the existing `users/{uid}/tasks/{taskId}` subcollection. New fields are optional, so legacy task records continue to load with safe defaults:
+
+- `title` (string, existing)
+- `description` (string, optional; defaults to empty)
+- `dueDate` (string, existing `yyyy-MM-dd` date key)
+- `startTime`, `endTime` (optional local `HH:mm` times)
+- `allDay` (boolean, defaults to `false`)
+- `completed` (boolean, existing)
+- `notificationEnabled` (boolean, defaults to `false`)
+- `reminderMinutesBefore` (number: `0`, `5`, `10`, `15`, `30`, or `60`)
+- `timezone` (IANA time-zone ID; defaults to the browser's current zone)
+- `reminderStatus` (`disabled`, `pending`, `sending`, `sent`, `cancelled`, `missed`, or `invalid`)
+- `reminderClaimedAt`, `reminderSentAt` (optional ISO-8601 timestamps)
+- `createdAt`, `updatedAt` (ISO-8601 timestamps)
+
+The React app writes reminder preferences to the task document. The existing Spring scheduler polls task documents each minute, computes the one-time trigger in `timezone`, and atomically claims a due task by changing `reminderStatus` from `pending` to `sending`. Successful sends set `sent`; a completed or deleted task is not sent; changing task timing or enabling a reminder resets it to `pending`. Invalid settings are marked `invalid`, and reminders more than the configured grace window late are marked `missed`. All-day task reminders use 09:00 local time.
+
+The scheduler reuses the existing `users/{uid}/deviceTokens` collection. FCM messages use a stable task/date/time tag so duplicate sends replace the same browser notification rather than alerting repeatedly. FCM `UNREGISTERED` errors remove the stale token. There are no scheduled FCM provider jobs to cancel: the scheduler checks the current Firestore task and status immediately before sending.
+
+No migration is required. Existing records without these fields are treated as anytime tasks with notifications disabled.
+
 ## Observed limits of the existing schema
 
 - No explicit `users/{uid}` profile fields were found in the inspected source files
-- All notification and scheduling state is stored on habit documents
+- Habit reminder settings remain on habit documents; one-time task reminder state is stored on task documents (see below)
 - Device tokens are stored separately per user in a Firestore subcollection
 
 ---

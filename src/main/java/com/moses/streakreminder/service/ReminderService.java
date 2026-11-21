@@ -2,14 +2,17 @@ package com.moses.streakreminder.service;
 
 import com.moses.streakreminder.model.DueReminder;
 import com.moses.streakreminder.model.Habit;
+import com.moses.streakreminder.model.TaskReminder;
 import com.moses.streakreminder.repository.FirestoreRepository;
 import com.moses.streakreminder.util.ReminderEvaluator;
+import com.moses.streakreminder.util.TaskReminderEvaluator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
 
 @Slf4j
 @Service
@@ -43,6 +46,46 @@ public class ReminderService {
         }
 
         return dueReminders;
+    }
+
+    public List<TaskReminder> claimDueTaskReminders(ZonedDateTime now, long graceSeconds) {
+        var dueTasks = new ArrayList<TaskReminder>();
+        Instant nowInstant = now.toInstant();
+
+        for (var userId : firestoreRepository.findAllUserIds()) {
+            for (var task : firestoreRepository.findTasksByUserId(userId)) {
+                var evaluation = TaskReminderEvaluator.evaluate(task, nowInstant, graceSeconds);
+                if (evaluation.state() != TaskReminderEvaluator.State.DUE
+                        && evaluation.state() != TaskReminderEvaluator.State.EXPIRED
+                        && evaluation.state() != TaskReminderEvaluator.State.INVALID
+                        && !"sending".equals(task.getReminderStatus())) {
+                    continue;
+                }
+
+                var claimedTask = firestoreRepository.claimTaskReminder(
+                        userId,
+                        task.getId(),
+                        nowInstant,
+                        graceSeconds);
+                if (claimedTask != null) {
+                    dueTasks.add(claimedTask.toBuilder().userId(userId).build());
+                }
+            }
+        }
+
+        return dueTasks;
+    }
+
+    public boolean isTaskReminderClaimCurrent(TaskReminder task) {
+        return firestoreRepository.isTaskReminderClaimCurrent(task.getUserId(), task);
+    }
+
+    public boolean finishTaskReminder(TaskReminder task, String status, Instant now) {
+        return firestoreRepository.finishTaskReminder(
+                task.getUserId(),
+                task.getId(),
+                status,
+                now);
     }
 
     private static boolean shouldEvaluate(Habit habit) {

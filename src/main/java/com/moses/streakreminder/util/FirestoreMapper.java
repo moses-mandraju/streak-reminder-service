@@ -4,6 +4,7 @@ import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.moses.streakreminder.model.DeviceToken;
 import com.moses.streakreminder.model.Habit;
+import com.moses.streakreminder.model.TaskReminder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,26 @@ public final class FirestoreMapper {
                 .token(document.getString("token"))
                 .createdAt(document.contains("createdAt") ? document.getTimestamp("createdAt") : null)
                 .lastSeenAt(document.contains("lastSeenAt") ? document.getTimestamp("lastSeenAt") : null)
+                .build();
+    }
+
+    public static TaskReminder toTaskReminder(DocumentSnapshot document) {
+        if (document == null || !document.exists()) {
+            return null;
+        }
+
+        return TaskReminder.builder()
+                .id(document.getId())
+                .title(document.getString("title"))
+                .description(document.getString("description"))
+                .dueDate(document.getString("dueDate"))
+                .startTime(document.getString("startTime"))
+                .allDay(Boolean.TRUE.equals(document.getBoolean("allDay")))
+                .completed(Boolean.TRUE.equals(document.getBoolean("completed")))
+                .notificationEnabled(Boolean.TRUE.equals(document.getBoolean("notificationEnabled")))
+                .reminderMinutesBefore(getInteger(document, "reminderMinutesBefore"))
+                .reminderStatus(document.getString("reminderStatus"))
+                .timezone(document.getString("timezone"))
                 .build();
     }
 

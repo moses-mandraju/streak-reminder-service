@@ -13,4 +13,6 @@ public class SchedulerProperties {
     private boolean enabled = true;
 
     private long pollIntervalSeconds = 60;
+
+    private long taskReminderGraceSeconds = 120;
 }

@@ -1,14 +1,17 @@
 package com.moses.streakreminder.scheduler;
 
 import com.moses.streakreminder.model.DueReminder;
+import com.moses.streakreminder.model.TaskReminder;
 import com.moses.streakreminder.repository.FirestoreRepository;
 import com.moses.streakreminder.service.NotificationService;
 import com.moses.streakreminder.service.ReminderService;
+import com.moses.streakreminder.config.SchedulerProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -18,13 +21,16 @@ public class ReminderScheduler {
     private final ReminderService reminderService;
     private final NotificationService notificationService;
     private final FirestoreRepository firestoreRepository;
+    private final SchedulerProperties schedulerProperties;
 
     public ReminderScheduler(ReminderService reminderService,
                              NotificationService notificationService,
-                             FirestoreRepository firestoreRepository) {
+                             FirestoreRepository firestoreRepository,
+                             SchedulerProperties schedulerProperties) {
         this.reminderService = reminderService;
         this.notificationService = notificationService;
         this.firestoreRepository = firestoreRepository;
+        this.schedulerProperties = schedulerProperties;
     }
 
     @Scheduled(cron = "${scheduler.cron-expression:0 * * * * *}")
@@ -64,7 +70,36 @@ public class ReminderScheduler {
             );
         }
 
+        processTaskReminders(now);
+
         log.info("Reminder Scheduler Completed");
         log.info("========================================");
+    }
+
+    private void processTaskReminders(ZonedDateTime now) {
+        List<TaskReminder> dueTasks = reminderService.claimDueTaskReminders(
+                now,
+                schedulerProperties.getTaskReminderGraceSeconds());
+        log.info("Due task reminders claimed: {}", dueTasks.size());
+
+        for (TaskReminder task : dueTasks) {
+            if (!reminderService.isTaskReminderClaimCurrent(task)) {
+                continue;
+            }
+
+            var deviceTokens = firestoreRepository.findDeviceTokensByUserId(task.getUserId());
+            if (deviceTokens.isEmpty()) {
+                reminderService.finishTaskReminder(task, "pending", Instant.now());
+                log.warn("No device tokens available for task reminder user={}, task={}",
+                        task.getUserId(), task.getId());
+                continue;
+            }
+
+            boolean sent = notificationService.sendTaskNotification(task, deviceTokens);
+            reminderService.finishTaskReminder(
+                    task,
+                    sent ? "sent" : "pending",
+                    Instant.now());
+        }
     }
 }
